@@ -7,7 +7,8 @@
 <style data-page-node-id="7mpDWq4Or51TX7egDuTFAY" data-pnid-children="jMD4qFOsbBtESgkSi9F4Kv">
   html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:"Microsoft YaHei",sans-serif;}
   #hud{position:fixed;inset:0;pointer-events:none;z-index:5;}
-  #cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:20px;text-shadow:0 0 3px #000;}
+  #cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:20px;text-shadow:0 0 3px #000;transition:font-size .15s,letter-spacing .15s;}
+  #cross.aim{font-size:12px;letter-spacing:10px;color:#aef;}
   #topbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);color:#fff;font-size:20px;font-weight:bold;text-shadow:0 1px 3px #000;text-align:center;}
   #zoneinfo{color:#4fc3f7;font-size:14px;font-weight:normal;}
   #stats{position:absolute;left:16px;bottom:16px;color:#fff;font-size:16px;text-shadow:0 1px 3px #000;line-height:1.8;}
@@ -23,6 +24,7 @@
   #overlay p{max-width:600px;line-height:2;color:#cfd8dc;text-align:center;}
   #overlay button{font-size:20px;padding:12px 44px;background:#ffd54a;border:none;border-radius:8px;cursor:pointer;font-weight:bold;pointer-events:auto;}
   #overlay button:hover{background:#ffca28;}
+  #sprint-indicator{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);color:#ffeb3b;font-size:14px;font-weight:bold;text-shadow:0 0 6px rgba(255,235,59,.6);opacity:0;transition:opacity .2s;}
 </style>
 <script data-page-node-id="wcz3iZsNhxNbmaObn42shM" data-pnid-children="eUiLJkbZ7Nw7XZNpckvjsJ" type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
@@ -31,15 +33,17 @@
 <body data-page-node-id="s07zx6Yt0SHzYAuBt3giY0">
 <div data-page-node-id="86BtVxo0cgcbdfwbW6Vgcn" id="hud">
   <div data-page-node-id="mWiYwpryDJ3ktTtCevMECZ" id="cross"><!--pnid:tgYceZybwbXBiGX7tPogel-->+</div><div data-page-node-id="v1Un4pXgnHIhFQksyeiZvU" id="hitm"><!--pnid:g4bY5iIyjBwC6WEyh6HZHY-->✕</div><div data-page-node-id="11NAIll37SeQn5gUazODkb" id="dmgv"></div>
-  <div data-page-node-id="CuaGlWiYcpS4eNzsO8KuuB" id="topbar"><!--pnid:4XdR0U54MqEWAKekitGcxq-->存活 <span data-page-node-id="tYZ7vj23M1mxJfp9FJa3U3" id="alive"><!--pnid:91c18KyBVn8WwV4ugUCV4y-->100</span><!--pnid:aECjkTDLrSSsaAUIYZY4Nb-->/100　击杀 <span data-page-node-id="w3n7rrjMvnoNOG5cKkINvp" id="kills"><!--pnid:cX9qXWQnPBe3g82cp1HaeW-->0</span><div data-page-node-id="5uATOKj5DUVwXZSpYYiLWb" id="zoneinfo"></div></div>
-  <div data-page-node-id="DIQnp7VEB056W1hN72wGyV" id="stats"><div data-page-node-id="ZTiuvqSlRNzdYXkjbmeqi7" id="hpbar"><div data-page-node-id="b70eU6qHwt6W641XYWbZcR" id="hpfill"></div></div><span data-page-node-id="FvxC4vwFJaRvZvPKojmkpE" id="wp"><!--pnid:NRxMZrDYswy2BsCEpmzBCy-->手枪</span>　<span data-page-node-id="DR0eR38a5H2BnGeShK222H" id="ammo"><!--pnid:O75LVvsJVMdix9IKFAPJ2u-->12/12</span><div data-page-node-id="3gvhHlrOypJ17hyQxMeuPL" style="font-size:12px; color:#aaa"><!--pnid:BlLgXDVEyye9rAJPsELjLW-->E 拾取 · R 换弹 · Shift 疾跑</div></div>
+  <div data-page-node-id="CuaGlWiYcpS4eNzsO8KuuB" id="topbar"><!--pnid:4XdR0U54MqEWAKekitGcxq-->存活 <span data-page-node-id="tYZ7vj23M1mxJfp9FJa3U3" id="alive"><!--pnid:91c18KyBVn8WwV4ugUCV4y-->100</span><!--pnid:aECjkTDLrSSsaAUIYZY4Nb-->/100 击杀 <span data-page-node-id="w3n7rrjMvnoNOG5cKkINvp" id="kills"><!--pnid:cX9qXWQnPBe3g82cp1HaeW-->0</span><div data-page-node-id="5uATOKj5DUVwXZSpYYiLWb" id="zoneinfo"></div></div>
+  <div data-page-node-id="DIQnp7VEB056W1hN72wGyV" id="stats"><div data-page-node-id="ZTiuvqSlRNzdYXkjbmeqi7" id="hpbar"><div data-page-node-id="b70eU6qHwt6W641XYWbZcR" id="hpfill"></div></div><span data-page-node-id="FvxC4vwFJaRvZvPKojmkpE" id="wp"><!--pnid:NRxMZrDYswy2BsCEpmzBCy-->手枪</span> <span data-page-node-id="DR0eR38a5H2BnGeShK222H" id="ammo"><!--pnid:O75LVvsJVMdix9IKFAPJ2u-->12/12</span><div data-page-node-id="3gvhHlrOypJ17hyQxMeuPL" style="font-size:12px; color:#aaa"><!--pnid:BlLgXDVEyye9rAJPsELjLW-->E 拾取 · R 换弹 · Shift 疾跑 · Space 跳跃 · 右键 瞄准</div></div>
   <div data-page-node-id="hboWxMpuFJ1vbkGqXsla4U" id="feed"></div><div data-page-node-id="ELnhbO0svU2kQUePCtpx7R" id="msg"></div>
   <canvas data-page-node-id="4rJ0AikuXmMCgJDH0AFilM" height="170" id="minimap" width="170"></canvas>
+  <div id="sprint-indicator">疾跑中</div>
 </div>
 <div data-page-node-id="Q8teSNplRChYsxYUGUSdaD" id="overlay">
   <h1 data-page-node-id="OmfCxpXkrj9HiU5fFHqIeG"><!--pnid:6wByOtTxkClAI3sDOo7e30-->孤岛吃鸡 3D</h1>
-  <p data-page-node-id="vlMaokcYZc374U0Y278fQE"><!--pnid:Xr9KYb9KWs8wAG9Oybpsd7-->100 人空降孤岛，第一人称视角，活到最后吃鸡。<br data-page-node-id="plzpYFQ93q02nUAVxE2FMJ">
-  <b data-page-node-id="o3vVXlezVY6TksXqdKPn0i"><!--pnid:kWIBTZj0nv2nx3u07AmWaZ-->WASD</b><!--pnid:3u0iHVOQrg2ObSgpiraHMS--> 移动 · <b data-page-node-id="dFikSx1OscA8KmOt0jXGXP"><!--pnid:NJHX2YYb9dfpHu1bYWrX6F-->鼠标</b><!--pnid:nGNqgRymohh66i7fogiJtj--> 视角 · <b data-page-node-id="nqniSWnMAzu0RE2e8BXEKi"><!--pnid:GO60n31HOFzby34wzi4U5o-->左键</b><!--pnid:yzxzLr6xwrAeq58Q3qtwMD--> 射击 · <b data-page-node-id="bM54Vt09WCoeEaWKOzH0NP"><!--pnid:3Mx8HViwmtBle04VqnjRok-->R</b><!--pnid:tpzOw03pIw8aKfWUjIXWGW--> 换弹 · <b data-page-node-id="DgTrNY9pyGAFuEY1HVH5j4"><!--pnid:lncvvf17tA5Qoq2yFQ6V6b-->E</b><!--pnid:j5PFGdH1yJQyxV4sP1FS9b--> 拾取 · <b data-page-node-id="5JGSC2nKgrzSw1RPw4boPJ"><!--pnid:F8CNrH7kMpLA0pP1cjLOKn-->Shift</b><!--pnid:aBvMNYGYRq0E1wAmkkNcQs--> 疾跑<br data-page-node-id="V7nfj9UtMpUUyaNoj4SIfk"><!--pnid:nWiRUV4O543zk2XAHoriHf-->
+  <p data-page-node-id="vlMaokcYZ374U0Y278fQE"><!--pnid:Xr9KYb9KWs8wAG9Oybpsd7-->100 人空降孤岛，第一人称视角，活到最后吃鸡。<br data-page-node-id="plzpYFQ93q02nUAVxE2FMJ">
+  <b data-page-node-id="o3vVXlezVY6TksXqdKPn0i"><!--pnid:kWIBTZjOv2nx3u07AmWaZ-->WASD</b><!--pnid:3u3iHVOQrg2ObSgpiraHMS--> 移动 · <b data-page-node-id="dFikSx1OscA8KmOt0jXGXP"><!--pnid:NJHX2YYb9dfpHu1bYWrX6F-->鼠标</b><!--pnid:nGNiRymohh66i7fogiJtj--> 视角 · <b data-page-node-id="nqniSWnMAzu0RE2e8BXEKi"><!--pnid:GO60n31HOFzby34wzi4U5o-->左键</b><!--pnid:yzxzLr6xwrAeq58Q3qtwMD--> 射击 · <b data-page-node-id="bM54Vt09WCoeEaWKOzH0NP"><!--pnid:3Mx8HViwmtBle04VqnjRok-->R</b><!--pnid:tpzOw03pIw8aKfWUjIXWGW--> 换弹 · <b data-page-node-id="DgTrNY9pyGAFuEY1HVH5j4"><!--pnid:lncvvf1tA5Qoq2yFQ6V6b-->E</b><!--pnid:j5PFGdH1yJQyxV4sP1FS9b--> 拾取 · <b data-page-node-id="5JGSC2nKgrzSw1RPw4boPJ"><!--pnid:F8CNrH7kMpLA0pP1cjLOKn-->Shift</b><!--pnid:aBvMNYGYRq0E1wAmkkNcQs--> 疾跑<br data-page-node-id="V7nfj9UtMpUUyaNoj4SIf"><!--pnid:nWiUV4O543zkXAHoriHf-->
+  <b>Space 跳跃 · 右键 瞄准</b><br data-page-node-id="plzpYFQ93q02nUAVxE2FMJ">
   99 个人机会互相厮杀、捡枪、跑毒，也会主动猎杀你——它们会预判、走位、低血撤退，别小看它们。<br data-page-node-id="EPTUR3u0aCbmADYVYDiRX4"><!--pnid:bm48m3HSvAjzCVovjIw1DV-->
   注意蓝色毒墙，待在安全区内！</p>
   <button data-page-node-id="DckCT5QrUupZxaPMCdetQ7" id="startbtn"><!--pnid:JPZ4x9xkKuv0hMa462UqQ1-->点击进入战场</button>
@@ -89,34 +93,150 @@ const zoneWall=new THREE.Mesh(
   new THREE.MeshBasicMaterial({color:0x3f8cff,transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false}));
 zoneWall.position.y=150;scene.add(zoneWall);
 
-// 树和岩石
+// 树和岩石 — 掩体
 const obstacles=[];
 {
   const trunkG=new THREE.CylinderGeometry(1.2,1.6,10,6),trunkM=new THREE.MeshLambertMaterial({color:0x6b4a2b});
   const leafG=new THREE.ConeGeometry(7,18,7),leafM=new THREE.MeshLambertMaterial({color:0x2e5a2e});
   const rockG=new THREE.DodecahedronGeometry(4),rockM=new THREE.MeshLambertMaterial({color:0x5a5a62});
-  for(let i=0;i<420;i++){
+  // 增加掩体数量：树 350 + 岩石 150 = 500
+  for(let i=0;i<500;i++){
     const x=rand(-MAP/2+40,MAP/2-40),z=rand(-MAP/2+40,MAP/2-40);
     if(Math.random()<.7){
       const t=new THREE.Group();
       const tr=new THREE.Mesh(trunkG,trunkM);tr.position.y=5;
       const lf=new THREE.Mesh(leafG,leafM);lf.position.y=17;lf.scale.setScalar(rand(.8,1.6));
-      t.add(tr,lf);t.position.set(x,0,z);scene.add(t);obstacles.push({x,z,r:3});
+      t.add(tr,lf);t.position.set(x,0,z);scene.add(t);
+      // 树有碰撞体积，半径增大到 4
+      obstacles.push({x,z,r:4,type:'tree'});
     }else{
-      const r=new THREE.Mesh(rockG,rockM);r.position.set(x,2,z);r.scale.setScalar(rand(.6,1.8));scene.add(r);obstacles.push({x,z,r:4});
+      const r=new THREE.Mesh(rockG,rockM);r.position.set(x,2,z);r.scale.setScalar(rand(.6,1.8));scene.add(r);
+      // 岩石碰撞半径根据缩放动态计算
+      const s=r.scale.x;
+      obstacles.push({x,z,r:4*s,type:'rock'});
     }
+  }
+}
+
+// 新增：房屋掩体 — 用简单盒子模拟
+const houseObstacles=[];
+{
+  const wallMat=new THREE.MeshLambertMaterial({color:0x8a7a6a});
+  const roofMat=new THREE.MeshLambertMaterial({color:0x5a3a2a});
+  // 在地图四角和中心区域放置房屋
+  const housePositions=[
+    {x:-800,z:-800},{x:800,z:-800},{x:-800,z:800},{x:800,z:800},
+    {x:0,z:0},{x:-600,z:0},{x:600,z:0},{x:0,z:-600},{x:0,z:600},
+    {x:-1400,z:0},{x:1400,z:0},{x:0,z:-1400},{x:0,z:1400},
+    {x:-1000,z:-1400},{x:1000,z:1400},{x:-1400,z:1000},{x:1400,z:-1000},
+    {x:-500,z:1200},{x:500,z:-1200},{x:1200,z:500},{x:-1200,z:-500},
+    {x:1500,z:0},{x:-1500,z:0},{x:0,z:1500},{x:0,z:-1500},
+  ];
+  for(const hp of housePositions){
+    const w=rand(12,20),d=rand(12,20),h=rand(6,10);
+    const g=new THREE.Group();
+    // 四面墙（中间空心）
+    const wallThick=0.8;
+    // 前墙
+    const fw=new THREE.Mesh(new THREE.BoxGeometry(w,h,wallThick),wallMat);
+    fw.position.set(0,h/2,-d/2);g.add(fw);
+    // 后墙
+    const bw=new THREE.Mesh(new THREE.BoxGeometry(w,h,wallThick),wallMat);
+    bw.position.set(0,h/2,d/2);g.add(bw);
+    // 左墙
+    const lw=new THREE.Mesh(new THREE.BoxGeometry(wallThick,h,d),wallMat);
+    lw.position.set(-w/2,h/2,0);g.add(lw);
+    // 右墙
+    const rw=new THREE.Mesh(new THREE.BoxGeometry(wallThick,h,d),wallMat);
+    rw.position.set(w/2,h/2,0);g.add(rw);
+    // 屋顶
+    const roof=new THREE.Mesh(new THREE.BoxGeometry(w+2,0.5,d+2),roofMat);
+    roof.position.y=h;g.add(roof);
+    // 地板
+    const floor=new THREE.Mesh(new THREE.BoxGeometry(w-1,0.3,d-1),
+      new THREE.MeshLambertMaterial({color:0x6a5a4a}));
+    floor.position.y=0.15;g.add(floor);
+    g.position.set(hp.x,0,hp.z);scene.add(g);
+    // 房屋作为碰撞体（矩形碰撞）
+    houseObstacles.push({x:hp.x,z:hp.z,hw:w/2+1,hd:d/2+1,h:h,type:'house'});
+  }
+}
+
+// 新增：车辆掩体
+const vehicleObstacles=[];
+{
+  const carBodyMat=new THREE.MeshLambertMaterial({color:0x4a6a8a});
+  const carWindowMat=new THREE.MeshLambertMaterial({color:0x88bbdd,transparent:true,opacity:.5});
+  const truckBodyMat=new THREE.MeshLambertMaterial({color:0x5a5a4a});
+  const truckCargoMat=new THREE.MeshLambertMaterial({color:0x4a4a3a});
+  const carColors=[0xc62828,0x1565c0,0x2e7d32,0xf57f17,0x6a1b9a,0x00838f,0x4e34ce,0xbf360c];
+  // 沿道路/区域散布车辆
+  const vehiclePositions=[];
+  for(let i=0;i<30;i++){
+    const angle=rand(0,Math.PI*2);
+    const dist=rand(200,1800);
+    vehiclePositions.push({x:Math.cos(angle)*dist,z:Math.sin(angle)*dist});
+  }
+  for(const vp of vehiclePositions){
+    const g=new THREE.Group();
+    const isTruck=Math.random()<.35;
+    const bodyMat=isTruck?truckBodyMat:carBodyMat[(Math.random()*carBodyMat.length)|0];
+    if(isTruck){
+      // 卡车：车体+货箱
+      const cab=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.2,2.5),bodyMat);
+      cab.position.set(0,1.4,1.2);g.add(cab);
+      const cargo=new THREE.Mesh(new THREE.BoxGeometry(2.4,2,3.5),truckCargoMat);
+      cargo.position.set(0,1.4,-1.3);g.add(cargo);
+      // 车窗
+      const windshield=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.2,0.1),carWindowMat);
+      windshield.position.set(0,2,2.45);g.add(windshield);
+    }else{
+      // 小轿车：车身+车顶
+      const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,1,4.5),bodyMat);
+      body.position.set(0,0.8,0);g.add(body);
+      const roof=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.8,2.2),bodyMat);
+      roof.position.set(0,1.7,-0.2);g.add(roof);
+      // 车窗
+      const windshield=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.7,0.1),carWindowMat);
+      windshield.position.set(0,1.5,1.15);g.add(windshield);
+      const rearWindow=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.7,0.1),carWindowMat);
+      rearWindow.position.set(0,1.5,-1.15);g.add(rearWindow);
+    }
+    // 轮子
+    const wheelG=new THREE.CylinderGeometry(.4,.4,.3,8);
+    const wheelMat=new THREE.MeshLambertMaterial({color:0x111111});
+    const wheelPositions=[[-1.1,.4,1.4],[1.1,.4,1.4],[-1.1,.4,-1.4],[1.1,.4,-1.4]];
+    for(const [wx,wy,wz] of wheelPositions){
+      const wheel=new THREE.Mesh(wheelG,wheelMat);
+      wheel.rotation.z=Math.PI/2;wheel.position.set(wx,wy,wz);g.add(wheel);
+    }
+    g.position.set(vp.x,0,vp.z);
+    // 随机旋转
+    g.rotation.y=rand(0,6.28);
+    scene.add(g);
+    // 车辆碰撞体（旋转后的矩形）
+    const vw=isTruck?5:3.5, vd=isTruck?5:4;
+    vehicleObstacles.push({x:vp.x,z:vp.z,hw:vw/2+0.5,hd:vd/2+0.5,h:isTruck?3.4:2.2,type:'vehicle',rot:g.rotation.y});
   }
 }
 
 // ================= 游戏状态 =================
 let bots=[],bullets3d=[],tracers=[],loots=[],feedArr=[];
-let gameOn=false,zonePhase=0,zoneTimer=0,msgT=0,lastT=0;
+let gameOn=false,zonePhase=0,zoneTimer=0,msgT=0,lastT=0,aliveCount=BOTN+1;
 const zone={x:0,z:0,r:MAP*0.72,tx:0,tz:0,tr:MAP*0.72,shrinking:false,sx:0,sz:0,sr:0};
 
 const player={
   pos:new THREE.Vector3(0,1.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,
   hp:100,alive:true,weapon:"pistol",ammo:WEAPONS.pistol.mag,reloadT:0,fireT:0,kills:0,speed:9,
-  isPlayer:true,x:0,z:0 // x/z 镜像供 AI 使用
+  isPlayer:true,x:0,z:0, // x/z 镜像供 AI 使用
+  // 跳跃物理
+  vy:0, // 垂直速度
+  onGround:true,
+  // 瞄准
+  aiming:false,
+  baseFOV:75,
+  aimFOV:35,
+  aimTransition:0, // 0=未瞄准, 1=完全瞄准
 };
 
 // ---------------- 人机 ----------------
@@ -140,13 +260,19 @@ function makeBot(x,z){
 }
 
 function reset(){
-  for(const b of bots)scene.remove(b.mesh);
-  for(const l of loots)scene.remove(l.mesh);
-  for(const t of tracers)scene.remove(t.line);
-  bots=[];loots=[];tracers=[];feedArr=[];zonePhase=0;zoneTimer=0;
+  // 清理旧资源，防止 GPU 内存泄漏
+  for(const b of bots){
+    scene.remove(b.mesh);
+    disposeMesh(b.mesh);
+  }
+  for(const l of loots){scene.remove(l.mesh);disposeMesh(l.mesh);}
+  for(const t of tracers){scene.remove(t.line);t.line.geometry.dispose();t.line.material.dispose();}
+  bots=[];loots=[];tracers=[];feedArr=[];zonePhase=0;zoneTimer=0;aliveCount=BOTN+1;
   Object.assign(zone,{x:0,z:0,r:MAP*0.72,tx:0,tz:0,tr:MAP*0.72,shrinking:false});
   player.hp=100;player.alive=true;player.weapon="pistol";player.ammo=WEAPONS.pistol.mag;
-  player.reloadT=0;player.kills=0;player.pos.set(rand(-200,200),1.7,rand(-200,200));player.yaw=rand(0,6.28);player.pitch=0;
+  player.reloadT=0;player.kills=0;
+  player.pos.set(rand(-200,200),1.7,rand(-200,200));player.yaw=rand(0,6.28);player.pitch=0;
+  player.vy=0;player.onGround=true;player.aiming=false;player.aimTransition=0;
   for(let i=0;i<BOTN;i++){
     let x,z;do{x=rand(-MAP/2+60,MAP/2-60);z=rand(-MAP/2+60,MAP/2-60);}while(d2(x,z,player.pos.x,player.pos.z)<350*350);
     bots.push(makeBot(x,z));
@@ -154,32 +280,175 @@ function reset(){
   for(let i=0;i<80;i++)spawnLoot(rand(-MAP/2+80,MAP/2-80),rand(-MAP/2+80,MAP/2-80),LOOT[(Math.random()*LOOT.length)|0]);
   updateHUD();
 }
+
+// 递归释放 Mesh 的 geometry 和 material
+function disposeMesh(mesh){
+  mesh.traverse(child=>{
+    if(child.geometry)child.geometry.dispose();
+    if(child.material){
+      if(Array.isArray(child.material))child.material.forEach(m=>m.dispose());
+      else child.material.dispose();
+    }
+  });
+}
 const lootG=new THREE.BoxGeometry(1,.5,.5);
 function spawnLoot(x,z,w){
   const m=new THREE.Mesh(lootG,new THREE.MeshLambertMaterial({color:WEAPONS[w].color,emissive:WEAPONS[w].color,emissiveIntensity:.35}));
   m.position.set(x,1,z);scene.add(m);loots.push({x,z,w,mesh:m});
 }
 
+// ---------------- 碰撞检测 ----------------
+// 检查一个点是否与任何掩体（树、岩石、房屋、车辆）碰撞
+// radius: 角色半径（玩家0.6，bot 0.6）
+function checkObstacleCollision(x,z,radius){
+  // 检查树和岩石
+  for(const o of obstacles){
+    const dx=x-o.x, dz=z-o.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    if(dist<o.r+radius){
+      // 碰撞，返回推开方向
+      if(dist>0.01){
+        const pushAngle=Math.atan2(dz,dx);
+        return {blocked:true,pushX:Math.cos(pushAngle),pushZ:Math.sin(pushAngle),pushDist:(o.r+radius)-dist};
+      }else{
+        return {blocked:true,pushX:1,pushZ:0,pushDist:o.r+radius};
+      }
+    }
+  }
+  // 检查房屋（矩形碰撞）
+  for(const h of houseObstacles){
+    // 将点转换到房屋局部坐标系
+    const dx=x-h.x, dz=z-h.z;
+    const cos=-Math.sin(0); // 房屋没有绕Y旋转（我们统一用世界坐标）
+    const sin=Math.cos(0);
+    // 简化：直接用轴对齐矩形
+    if(Math.abs(dx)<h.hw+radius && Math.abs(dz)<h.hd+radius){
+      // 计算最小推开距离
+      const overlapX=h.hw+radius-Math.abs(dx);
+      const overlapZ=h.hd+radius-Math.abs(dz);
+      if(overlapX<overlapZ){
+        return {blocked:true,pushX:dx>0?1:-1,pushZ:0,pushDist:overlapX};
+      }else{
+        return {blocked:true,pushX:0,pushZ:dz>0?1:-1,pushDist:overlapZ};
+      }
+    }
+  }
+  // 检查车辆
+  for(const v of vehicleObstacles){
+    // 将点转换到车辆局部坐标系
+    const dx=x-v.x, dz=z-v.z;
+    const cos=Math.cos(-v.rot), sin=Math.sin(-v.rot);
+    const localX=dx*cos-dz*sin;
+    const localZ=dx*sin+dz*cos;
+    if(Math.abs(localX)<v.hw+radius && Math.abs(localZ)<v.hd+radius){
+      const overlapX=v.hw+radius-Math.abs(localX);
+      const overlapZ=v.hd+radius-Math.abs(localZ);
+      if(overlapX<overlapZ){
+        // 转换回世界坐标（局部X轴的世界方向）
+        const wcos=Math.cos(v.rot),wsin=Math.sin(v.rot);
+        const sign=localX>0?1:-1;
+        return {blocked:true,pushX:wcos*sign,pushZ:wsin*sign,pushDist:overlapX};
+      }else{
+        // 转换回世界坐标（局部Z轴的世界方向）
+        const wcos=Math.cos(v.rot+Math.PI/2),wsin=Math.sin(v.rot+Math.PI/2);
+        const sign=localZ>0?1:-1;
+        return {blocked:true,pushX:wcos*sign,pushZ:wsin*sign,pushDist:overlapZ};
+      }
+    }
+  }
+  return {blocked:false};
+}
+
+// 检查从(x1,z1)到(x2,z2)的直线是否与掩体碰撞（用于子弹）
+// 优化：远距离检测采样更稀疏，且先做快速距离预检
+function lineObstacleBlocked(x1,z1,x2,z2){
+  const dist=Math.sqrt(d2(x1,z1,x2,z2));
+  // 距离太短不需要检测掩体
+  if(dist<20)return false;
+  const steps=Math.ceil(dist/8); // 每8单位采样一次（优化：减少采样密度）
+  for(let i=0;i<=steps;i++){
+    const t=steps===0?0:i/steps;
+    const cx=x1+(x2-x1)*t;
+    const cz=z1+(z2-z1)*t;
+    // 检查树/岩石（只检测附近的，用距离平方快速过滤）
+    for(const o of obstacles){
+      if(d2(cx,cz,o.x,o.z)<(o.r*0.7)*(o.r*0.7)) return true;
+    }
+    // 检查房屋
+    for(const h of houseObstacles){
+      if(Math.abs(cx-h.x)<h.hw*0.85 && Math.abs(cz-h.z)<h.hd*0.85) return true;
+    }
+    // 检查车辆
+    for(const v of vehicleObstacles){
+      const dx=cx-v.x,dz=cz-v.z;
+      const cos=Math.cos(-v.rot),sin=Math.sin(-v.rot);
+      const lx=dx*cos-dz*sin,lz=dx*sin+dz*cos;
+      if(Math.abs(lx)<v.hw*0.8 && Math.abs(lz)<v.hd*0.8) return true;
+    }
+  }
+  return false;
+}
+
 // ---------------- 输入 ----------------
 const keys={};
-addEventListener('keydown',e=>{keys[e.code]=true;
-  if(e.code==='KeyR')startReload(player);
-  if(e.code==='KeyE')tryPickup();});
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='KeyR'&&gameOn&&player.alive)startReload(player);
+  if(e.code==='KeyE'&&gameOn&&player.alive)tryPickup();
+  // Space 跳跃
+  if(e.code==='Space'&&gameOn&&player.alive&&player.onGround){
+    player.vy=6.5; // 跳跃初速度
+    player.onGround=false;
+  }
+});
 addEventListener('keyup',e=>keys[e.code]=false);
 let mouseDown=false;
-addEventListener('mousedown',e=>{if(e.button===0)mouseDown=true;});
-addEventListener('mouseup',()=>mouseDown=false);
+let rightMouseDown=false;
+addEventListener('mousedown',e=>{
+  if(e.button===0)mouseDown=true;
+  if(e.button===2){
+    rightMouseDown=true;
+    if(gameOn&&player.alive)startAim(true);
+  }
+});
+addEventListener('mouseup',e=>{
+  if(e.button===0)mouseDown=false;
+  if(e.button===2){
+    rightMouseDown=false;
+    if(gameOn&&player.alive)startAim(false);
+  }
+});
 addEventListener('mousemove',e=>{
   if(document.pointerLockElement!==renderer.domElement)return;
   player.yaw-=e.movementX*.0022;
   player.pitch=clamp(player.pitch-e.movementY*.0022,-1.45,1.45);
 });
+// 阻止右键菜单
+addEventListener('contextmenu',e=>e.preventDefault());
+// 疾跑视觉反馈
+addEventListener('keydown',e=>{
+  if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&gameOn){
+    document.getElementById('sprint-indicator').style.opacity='1';
+  }
+});
+addEventListener('keyup',e=>{
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){
+    document.getElementById('sprint-indicator').style.opacity='0';
+  }
+});
+
 document.getElementById('startbtn').onclick=()=>{
   document.getElementById('overlay').style.display='none';
   if(!gameOn){reset();gameOn=true;lastT=performance.now();requestAnimationFrame(loop);}
   renderer.domElement.requestPointerLock();
 };
 renderer.domElement.addEventListener('click',()=>{if(gameOn&&player.alive)renderer.domElement.requestPointerLock();});
+
+function startAim(aiming){
+  player.aiming=aiming;
+  const cross=document.getElementById('cross');
+  if(aiming){cross.classList.add('aim');}else{cross.classList.remove('aim');}
+}
 
 function startReload(e){if(e.reloadT>0||e.ammo===WEAPONS[e.weapon].mag)return;e.reloadT=WEAPONS[e.weapon].reload;}
 function tryPickup(){
@@ -213,6 +482,7 @@ function playerShoot(now){
       end=hits[0].point;
       if(b){damage(b,W.dmg,player);hitmarker();}
     }
+    // 子弹被掩体阻挡时停止
     addTracer(camera.position.clone().add(dir.clone().multiplyScalar(2)).add(new THREE.Vector3(0,-.15,0)),end,0xffe082);
   }
   updateHUD();
@@ -222,27 +492,91 @@ function botShoot(b,t,now){
   if(b.reloadT>0||now<b.fireT)return;
   if(b.ammo<=0){startReload(b);return;}
   b.fireT=now+W.rof;b.ammo--;
-  const d=Math.sqrt(d2(b.x,b.z,t.x??t.pos.x,t.z??t.pos.z));
   const tx=t.x??t.pos.x,tz=t.z??t.pos.z;
-  // 命中率：技能 + 距离衰减 + 目标移动惩罚
+  const d=Math.sqrt(d2(b.x,b.z,tx,tz));
+  // 命中率：技能 + 距离衰减 + 目标移动惩罚 + 掩体惩罚
   const moving=Math.hypot(t.vx||0,t.vz||0)>3|| (t.isPlayer&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD']));
   let p=b.skill*clamp(1.15-d/W.range,.1,1)*(moving?.62:1)*(t.isPlayer?.85:1);
+  // 掩体检测：如果目标和bot之间有掩体，降低命中率
+  if(lineObstacleBlocked(b.x,b.z,tx,tz)){
+    p*=0.3; // 掩体后命中率大幅降低
+  }
   const hit=Math.random()<p;
   const from=new THREE.Vector3(b.x,1.4,b.z);
   let to;
   if(hit){
-    damage(t,W.dmg,b);
-    to=new THREE.Vector3(tx,1.2,tz);
+    // 再次检查掩体：如果子弹路径被掩体阻挡，则不命中
+    if(lineObstacleBlocked(b.x,b.z,tx,tz)){
+      // 子弹被掩体挡住，显示击中掩体效果
+      const hitPoint=findObstacleHitPoint(b.x,b.z,tx,tz);
+      to=hitPoint;
+      addTracer(from,to,0xffe082); // 黄色曳光表示击中掩体
+    }else{
+      damage(t,W.dmg,b);
+      to=new THREE.Vector3(tx,1.2,tz);
+    }
   }else{
     to=new THREE.Vector3(tx+rand(-3,3),rand(.5,2.2),tz+rand(-3,3));
   }
   addTracer(from,to,0xff5252);
 }
 
+// 找到子弹击中掩体的位置
+function findObstacleHitPoint(x1,z1,x2,z2){
+  const dx=x2-x1,dz=z2-z1;
+  const dist=Math.sqrt(dx*dx+dz*dz);
+  const steps=Math.ceil(dist/3); // 每3单位采样
+  for(let i=1;i<=steps;i++){
+    const t=i/steps;
+    const cx=x1+dx*t,cz=z1+dz*t;
+    for(const o of obstacles){
+      if(Math.sqrt(d2(cx,cz,o.x,o.z))<o.r*0.7) return new THREE.Vector3(cx,1.2,cz);
+    }
+    for(const h of houseObstacles){
+      if(Math.abs(cx-h.x)<h.hw*0.85 && Math.abs(cz-h.z)<h.hd*0.85) return new THREE.Vector3(cx,1.2,cz);
+    }
+    for(const v of vehicleObstacles){
+      const vdx=cx-v.x,vdz=cz-v.z;
+      const cos=Math.cos(-v.rot),sin=Math.sin(-v.rot);
+      const lx=vdx*cos-vdz*sin,lz=vdx*sin+vdz*cos;
+      if(Math.abs(lx)<v.hw*0.8 && Math.abs(lz)<v.hd*0.8) return new THREE.Vector3(cx,1.2,cz);
+    }
+  }
+  return new THREE.Vector3(x2,1.2,z2);
+}
+
+// 曳光弹对象池 — 复用 geometry/material，减少 GC 压力
+const tracerPool=[];
+const TRACER_POOL_SIZE=512;
+(function initTracerPool(){
+  for(let i=0;i<TRACER_POOL_SIZE;i++){
+    const g=new THREE.BufferGeometry();
+    const m=new THREE.LineBasicMaterial({transparent:true,opacity:.9});
+    const l=new THREE.Line(g,m);
+    l.visible=false;
+    scene.add(l);
+    tracerPool.push({line:l,geo:g,mat:m});
+  }
+})();
+let tracerPoolIdx=0;
+
 function addTracer(a,b,color){
-  const g=new THREE.BufferGeometry().setFromPoints([a,b]);
-  const line=new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity:.9}));
-  scene.add(line);tracers.push({line,t:performance.now()+70});
+  // 优先从池中取，池空则新建
+  let slot;
+  if(tracerPoolIdx<tracerPool.length){
+    slot=tracerPool[tracerPoolIdx++];
+  }else{
+    const g=new THREE.BufferGeometry();
+    const m=new THREE.LineBasicMaterial({color,transparent:true,opacity:.9});
+    const l=new THREE.Line(g,m);
+    scene.add(l);
+    slot={line:l,geo:g,mat:m};
+  }
+  slot.geo.setFromPoints([a,b]);
+  slot.mat.color.setHex(color);
+  slot.mat.opacity=.9;
+  slot.line.visible=true;
+  tracers.push({line:slot.line,t:performance.now()+70,slot});
 }
 
 function damage(e,d,src){
@@ -257,8 +591,10 @@ function damage(e,d,src){
   }
   if(e.hp<=0){
     e.alive=false;src.kills++;
+    aliveCount--; // 存活数递减
     if(!e.isPlayer){
       scene.remove(e.mesh);
+      disposeMesh(e.mesh);
       if(Math.random()<.5)spawnLoot(e.x,e.z,Math.random()<.3?"sniper":LOOT[(Math.random()*LOOT.length)|0]);
     }
     const an=src.isPlayer?"你":src._zone?"毒圈":"人机",bn=e.isPlayer?"你":"人机";
@@ -346,13 +682,21 @@ function botAct(b,dt,now){
     if(b.state==="loot"&&b.lt){
       const idx=loots.indexOf(b.lt);
       if(idx<0){b.state="roam";}
-      else if(d<2.5){b.weapon=b.lt.w;b.ammo=W.mag;scene.remove(b.lt.mesh);loots.splice(idx,1);b.state="roam";}
+      else if(d<2.5){b.weapon=b.lt.w;b.ammo=WEAPONS[b.lt.w].mag;scene.remove(b.lt.mesh);loots.splice(idx,1);b.state="roam";}
     }
   }
   const sp=b.speed*(b.reloadT>0?.75:1);
   b.vx=mx*sp;b.vz=mz*sp;
-  b.x=clamp(b.x+b.vx*dt/1000,-MAP/2+10,MAP/2-10);
-  b.z=clamp(b.z+b.vz*dt/1000,-MAP/2+10,MAP/2-10);
+  const nx=clamp(b.x+b.vx*dt/1000,-MAP/2+10,MAP/2-10);
+  const nz=clamp(b.z+b.vz*dt/1000,-MAP/2+10,MAP/2-10);
+  // Bot 碰撞检测
+  const col=checkObstacleCollision(nx,nz,0.7);
+  if(col.blocked){
+    b.x=clamp(b.x+col.pushX*col.pushDist,-MAP/2+10,MAP/2-10);
+    b.z=clamp(b.z+col.pushZ*col.pushDist,-MAP/2+10,MAP/2-10);
+  }else{
+    b.x=nx;b.z=nz;
+  }
   b.mesh.position.set(b.x,0,b.z);
   b.mesh.rotation.y=-b.yaw;
   // 血条朝相机
@@ -409,11 +753,56 @@ function loop(now){
     const sp=player.speed*run*(player.reloadT>0?.85:1);
     const sin=Math.sin(player.yaw),cos=Math.cos(player.yaw);
     player.vel.set((s*cos-f*sin)*sp,0,(-f*cos-s*sin)*sp);
-    player.pos.x=clamp(player.pos.x+player.vel.x*dt/1000,-MAP/2+8,MAP/2-8);
-    player.pos.z=clamp(player.pos.z+player.vel.z*dt/1000,-MAP/2+8,MAP/2-8);
+
+    // 计算新位置
+    let nx=player.pos.x+player.vel.x*dt/1000;
+    let nz=player.pos.z+player.vel.z*dt/1000;
+    nx=clamp(nx,-MAP/2+8,MAP/2-8);
+    nz=clamp(nz,-MAP/2+8,MAP/2-8);
+
+    // 玩家碰撞检测
+    const col=checkObstacleCollision(nx,nz,0.6);
+    if(col.blocked){
+      player.pos.x=clamp(player.pos.x+col.pushX*col.pushDist,-MAP/2+8,MAP/2-8);
+      player.pos.z=clamp(player.pos.z+col.pushZ*col.pushDist,-MAP/2+8,MAP/2-8);
+    }else{
+      player.pos.x=nx;
+      player.pos.z=nz;
+    }
+
+    // 跳跃物理：重力和垂直速度
+    if(!player.onGround){
+      player.vy-=18*dt/1000; // 重力加速度 18 m/s^2
+      player.pos.y+=player.vy*dt/1000;
+      if(player.pos.y<=1.7){
+        player.pos.y=1.7;
+        player.vy=0;
+        player.onGround=true;
+      }
+    }
+
     player.x=player.pos.x;player.z=player.pos.z;
     player.vx=player.vel.x;player.vz=player.vel.z;
     camera.position.copy(player.pos);
+
+    // 瞄准时相机后移 + FOV 变化
+    if(player.aiming){
+      // 平滑过渡
+      player.aimTransition=clamp(player.aimTransition+dt/400,0,1);
+    }else{
+      player.aimTransition=clamp(player.aimTransition-dt/300,0,1);
+    }
+    const t=player.aimTransition;
+    camera.fov=THREE.MathUtils.lerp(player.baseFOV,player.aimFOV,t);
+    camera.updateProjectionMatrix();
+
+    // 瞄准时相机位置后移
+    const aimOffset=t*0.5; // 后移距离
+    const right=new THREE.Vector3(-sin,0,cos);
+    const forward=new THREE.Vector3(-cos,0,-sin);
+    camera.position.add(right.multiplyScalar(aimOffset*0.3));
+    camera.position.y+=aimOffset*0.15; // 瞄准时相机略下沉
+
     camera.rotation.set(0,0,0);camera.rotateY(player.yaw);camera.rotateX(player.pitch);
     if(mouseDown&&document.pointerLockElement)playerShoot(now);
     if(player.reloadT>0){player.reloadT-=dt;if(player.reloadT<=0){player.reloadT=0;player.ammo=WEAPONS[player.weapon].mag;updateHUD();}}
@@ -422,12 +811,28 @@ function loop(now){
     if(b.reloadT>0){b.reloadT-=dt;if(b.reloadT<=0){b.reloadT=0;b.ammo=WEAPONS[b.weapon].mag;}}
     botAct(b,dt,now);
   }
-  // 曳光弹清理
-  for(let i=tracers.length-1;i>=0;i--)if(now>tracers[i].t){scene.remove(tracers[i].line);tracers.splice(i,1);}
+  // 曳光弹清理 — 回收至对象池，限制最大数量防止卡顿
+  const maxTracers=200;
+  // 回收溢出的池对象
+  while(tracerPoolIdx>maxTracers){
+    tracerPoolIdx--;
+    const s=tracerPool[tracerPoolIdx];
+    s.line.visible=false;
+    scene.remove(s.line);
+  }
+  for(let i=tracers.length-1;i>=0;i--){
+    if(now>tracers[i].t){
+      const entry=tracers[i];
+      entry.line.visible=false;
+      scene.remove(entry.line);
+      // 重置池索引以便复用
+      if(entry.slot && tracerPoolIdx>0)tracerPoolIdx--;
+      tracers.splice(i,1);
+    }
+  }
   updateZone(dt);
-  const alive=(player.alive?1:0)+bots.filter(b=>b.alive).length;
-  document.getElementById('alive').textContent=alive;
-  if(alive===1&&player.alive)endGame(true);
+  document.getElementById('alive').textContent=aliveCount;
+  if(aliveCount===1&&player.alive)endGame(true);
   if(msgT&&now>msgT){document.getElementById('msg').textContent='';msgT=0;}
   drawMinimap();
   renderer.render(scene,camera);
@@ -461,7 +866,7 @@ function endGame(win){
   const o=document.getElementById('overlay');
   o.style.display='flex';
   o.innerHTML=`<h1>${win?"大吉大利，今晚吃鸡！":"你被击杀了"}</h1>
-  <p>击杀数：${player.kills}　最终排名：#${win?1:1+bots.filter(b=>b.alive).length}</p>
+  <p>击杀数：${player.kills} 最终排名：#${win?1:aliveCount}</p>
   <button id="startbtn">再来一局</button>`;
   document.getElementById('startbtn').onclick=()=>{
     o.style.display='none';reset();gameOn=true;lastT=performance.now();
