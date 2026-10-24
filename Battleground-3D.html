@@ -52,7 +52,7 @@
 import * as THREE from 'three';
 
 // ================= 基础 =================
-const MAP=4000, BOTN=99;
+const MAP=1200, BOTN=99;
 const rand=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const d2=(ax,az,bx,bz)=>{const dx=ax-bx,dz=az-bz;return dx*dx+dz*dz;};
@@ -274,10 +274,10 @@ function reset(){
   player.pos.set(rand(-200,200),1.7,rand(-200,200));player.yaw=rand(0,6.28);player.pitch=0;
   player.vy=0;player.onGround=true;player.aiming=false;player.aimTransition=0;
   for(let i=0;i<BOTN;i++){
-    let x,z;do{x=rand(-MAP/2+60,MAP/2-60);z=rand(-MAP/2+60,MAP/2-60);}while(d2(x,z,player.pos.x,player.pos.z)<350*350);
+    let x,z;do{x=rand(-MAP/2+40,MAP/2-40);z=rand(-MAP/2+40,MAP/2-40);}while(d2(x,z,player.pos.x,player.pos.z)<200*200);
     bots.push(makeBot(x,z));
   }
-  for(let i=0;i<80;i++)spawnLoot(rand(-MAP/2+80,MAP/2-80),rand(-MAP/2+80,MAP/2-80),LOOT[(Math.random()*LOOT.length)|0]);
+  for(let i=0;i<60;i++)spawnLoot(rand(-MAP/2+40,MAP/2-40),rand(-MAP/2+40,MAP/2-40),LOOT[(Math.random()*LOOT.length)|0]);
   updateHUD();
 }
 
@@ -297,60 +297,99 @@ function spawnLoot(x,z,w){
   m.position.set(x,1,z);scene.add(m);loots.push({x,z,w,mesh:m});
 }
 
-// ---------------- 碰撞检测 ----------------
-// 检查一个点是否与任何掩体（树、岩石、房屋、车辆）碰撞
-// radius: 角色半径（玩家0.6，bot 0.6）
-function checkObstacleCollision(x,z,radius){
-  // 检查树和岩石
+// ---------------- 碰撞检测（空间网格加速） ----------------
+// 空间网格：将地图划分为 CELL_SIZE×CELL_SIZE 的格子，碰撞时只查附近格子
+const CELL_SIZE=20;
+const gridCols=Math.ceil(MAP/CELL_SIZE), gridRows=Math.ceil(MAP/CELL_SIZE);
+const grid=new Array(gridCols*gridRows); // 每个格子存 {type:'circle'|'rect', ...} 列表
+function gridKey(cx,cz){const ix=Math.floor(cx/CELL_SIZE),iz=Math.floor(cz/CELL_SIZE);if(ix<0||iz<0||ix>=gridCols||iz>=gridRows)return -1;return iz*gridCols+ix;}
+function gridInsert(cx,cz,obj){const k=gridKey(cx,cz);if(k<0)return;if(!grid[k])grid[k]=[];grid[k].push(obj);}
+function gridClear(){for(let i=0;i<grid.length;i++)grid[i]=null;}
+
+// 构建空间网格（所有掩体静态不动，只需建一次）
+(function buildGrid(){
   for(const o of obstacles){
-    const dx=x-o.x, dz=z-o.z;
-    const dist=Math.sqrt(dx*dx+dz*dz);
-    if(dist<o.r+radius){
-      // 碰撞，返回推开方向
-      if(dist>0.01){
-        const pushAngle=Math.atan2(dz,dx);
-        return {blocked:true,pushX:Math.cos(pushAngle),pushZ:Math.sin(pushAngle),pushDist:(o.r+radius)-dist};
-      }else{
-        return {blocked:true,pushX:1,pushZ:0,pushDist:o.r+radius};
-      }
+    const cx=o.x, cz=o.z;
+    const r2=(o.r+2)*(o.r+2); // 膨胀2单位覆盖相邻格子
+    const minI=Math.max(0,Math.floor((cx-r2)/CELL_SIZE));
+    const maxI=Math.min(gridCols-1,Math.floor((cx+r2)/CELL_SIZE));
+    const minJ=Math.max(0,Math.floor((cz-r2)/CELL_SIZE));
+    const maxJ=Math.min(gridRows-1,Math.floor((cz+r2)/CELL_SIZE));
+    for(let j=minJ;j<=maxJ;j++)for(let i=minI;i<=maxI;i++)gridInsert(i*CELL_SIZE,j*CELL_SIZE,o);
+  }
+  for(const h of houseObstacles){
+    const minI=Math.floor((h.x-h.hw)/CELL_SIZE);
+    const maxI=Math.floor((h.x+h.hw)/CELL_SIZE);
+    const minJ=Math.floor((h.z-h.hd)/CELL_SIZE);
+    const maxJ=Math.floor((h.z+h.hd)/CELL_SIZE);
+    for(let j=Math.max(0,minJ);j<=Math.min(gridRows-1,maxJ);j++)for(let i=Math.max(0,minI);i<=Math.min(gridCols-1,maxI);i++)gridInsert(i*CELL_SIZE,j*CELL_SIZE,h);
+  }
+  for(const v of vehicleObstacles){
+    const minI=Math.floor((v.x-v.hw)/CELL_SIZE);
+    const maxI=Math.floor((v.x+v.hw)/CELL_SIZE);
+    const minJ=Math.floor((v.z-v.hd)/CELL_SIZE);
+    const maxJ=Math.floor((v.z+v.hd)/CELL_SIZE);
+    for(let j=Math.max(0,minJ);j<=Math.min(gridRows-1,maxJ);j++)for(let i=Math.max(0,minI);i<=Math.min(gridCols-1,maxI);i++)gridInsert(i*CELL_SIZE,j*CELL_SIZE,v);
+  }
+})();
+
+// 从网格中收集候选掩体（去重）
+function gridCollectCandidates(cx,cz,maxDist){
+  const result=[];
+  const seen=new Set();
+  const minI=Math.max(0,Math.floor((cx-maxDist)/CELL_SIZE));
+  const maxI=Math.min(gridCols-1,Math.floor((cx+maxDist)/CELL_SIZE));
+  const minJ=Math.max(0,Math.floor((cz-maxDist)/CELL_SIZE));
+  const maxJ=Math.min(gridRows-1,Math.floor((cz+maxDist)/CELL_SIZE));
+  for(let j=minJ;j<=maxJ;j++)for(let i=minI;i<=maxI;i++){
+    const cell=grid[j*gridCols+i];
+    if(!cell)continue;
+    for(const o of cell){
+      const id=Object.is(o,o)?o:null; // 稳定引用
+      if(!seen.has(id)){seen.add(id);result.push(o);}
     }
   }
-  // 检查房屋（矩形碰撞）
-  for(const h of houseObstacles){
-    // 将点转换到房屋局部坐标系
-    const dx=x-h.x, dz=z-h.z;
-    const cos=-Math.sin(0); // 房屋没有绕Y旋转（我们统一用世界坐标）
-    const sin=Math.cos(0);
-    // 简化：直接用轴对齐矩形
-    if(Math.abs(dx)<h.hw+radius && Math.abs(dz)<h.hd+radius){
-      // 计算最小推开距离
-      const overlapX=h.hw+radius-Math.abs(dx);
-      const overlapZ=h.hd+radius-Math.abs(dz);
-      if(overlapX<overlapZ){
-        return {blocked:true,pushX:dx>0?1:-1,pushZ:0,pushDist:overlapX};
-      }else{
+  return result;
+}
+
+// 检查一个点是否与附近掩体碰撞（通过空间网格加速）
+function checkObstacleCollision(x,z,radius){
+  // 只收集半径 radius+2 范围内的候选
+  const candidates=gridCollectCandidates(x,z,radius+10);
+  for(const o of candidates){
+    if(o.type==='tree'||o.type==='rock'){
+      const dx=x-o.x, dz=z-o.z;
+      const minDist=o.r+radius;
+      const minDist2=minDist*minDist;
+      if(dx*dx+dz*dz<minDist2){
+        const dist=Math.sqrt(dx*dx+dz*dz);
+        if(dist>0.01){
+          const pushAngle=Math.atan2(dz,dx);
+          return {blocked:true,pushX:Math.cos(pushAngle),pushZ:Math.sin(pushAngle),pushDist:minDist-dist};
+        }
+        return {blocked:true,pushX:1,pushZ:0,pushDist:minDist};
+      }
+    }else if(o.type==='house'){
+      const dx=x-o.x, dz=z-o.z;
+      if(Math.abs(dx)<o.hw+radius && Math.abs(dz)<o.hd+radius){
+        const overlapX=o.hw+radius-Math.abs(dx);
+        const overlapZ=o.hd+radius-Math.abs(dz);
+        if(overlapX<overlapZ)return {blocked:true,pushX:dx>0?1:-1,pushZ:0,pushDist:overlapX};
         return {blocked:true,pushX:0,pushZ:dz>0?1:-1,pushDist:overlapZ};
       }
-    }
-  }
-  // 检查车辆
-  for(const v of vehicleObstacles){
-    // 将点转换到车辆局部坐标系
-    const dx=x-v.x, dz=z-v.z;
-    const cos=Math.cos(-v.rot), sin=Math.sin(-v.rot);
-    const localX=dx*cos-dz*sin;
-    const localZ=dx*sin+dz*cos;
-    if(Math.abs(localX)<v.hw+radius && Math.abs(localZ)<v.hd+radius){
-      const overlapX=v.hw+radius-Math.abs(localX);
-      const overlapZ=v.hd+radius-Math.abs(localZ);
-      if(overlapX<overlapZ){
-        // 转换回世界坐标（局部X轴的世界方向）
-        const wcos=Math.cos(v.rot),wsin=Math.sin(v.rot);
-        const sign=localX>0?1:-1;
-        return {blocked:true,pushX:wcos*sign,pushZ:wsin*sign,pushDist:overlapX};
-      }else{
-        // 转换回世界坐标（局部Z轴的世界方向）
-        const wcos=Math.cos(v.rot+Math.PI/2),wsin=Math.sin(v.rot+Math.PI/2);
+    }else if(o.type==='vehicle'){
+      const dx=x-o.x, dz=z-o.z;
+      const cos=Math.cos(-o.rot),sin=Math.sin(-o.rot);
+      const localX=dx*cos-dz*sin,localZ=dx*sin+dz*cos;
+      if(Math.abs(localX)<o.hw+radius && Math.abs(localZ)<o.hd+radius){
+        const overlapX=o.hw+radius-Math.abs(localX);
+        const overlapZ=o.hd+radius-Math.abs(localZ);
+        if(overlapX<overlapZ){
+          const wcos=Math.cos(o.rot),wsin=Math.sin(o.rot);
+          const sign=localX>0?1:-1;
+          return {blocked:true,pushX:wcos*sign,pushZ:wsin*sign,pushDist:overlapX};
+        }
+        const wcos=Math.cos(o.rot+Math.PI/2),wsin=Math.sin(o.rot+Math.PI/2);
         const sign=localZ>0?1:-1;
         return {blocked:true,pushX:wcos*sign,pushZ:wsin*sign,pushDist:overlapZ};
       }
@@ -360,30 +399,30 @@ function checkObstacleCollision(x,z,radius){
 }
 
 // 检查从(x1,z1)到(x2,z2)的直线是否与掩体碰撞（用于子弹）
-// 优化：远距离检测采样更稀疏，且先做快速距离预检
+// 优化：只对近距离子弹检测，远距离直接忽略
 function lineObstacleBlocked(x1,z1,x2,z2){
   const dist=Math.sqrt(d2(x1,z1,x2,z2));
-  // 距离太短不需要检测掩体
-  if(dist<20)return false;
-  const steps=Math.ceil(dist/8); // 每8单位采样一次（优化：减少采样密度）
+  if(dist<15)return false; // 太短不需要检测
+  // 最大检测距离 200（近距离武器自动命中，远距离武器采样稀疏）
+  const maxCheckDist=200;
+  const steps=Math.min(Math.ceil(dist/6),Math.ceil(maxCheckDist/6));
   for(let i=0;i<=steps;i++){
-    const t=steps===0?0:i/steps;
+    const t=i/steps;
     const cx=x1+(x2-x1)*t;
     const cz=z1+(z2-z1)*t;
-    // 检查树/岩石（只检测附近的，用距离平方快速过滤）
-    for(const o of obstacles){
-      if(d2(cx,cz,o.x,o.z)<(o.r*0.7)*(o.r*0.7)) return true;
-    }
-    // 检查房屋
-    for(const h of houseObstacles){
-      if(Math.abs(cx-h.x)<h.hw*0.85 && Math.abs(cz-h.z)<h.hd*0.85) return true;
-    }
-    // 检查车辆
-    for(const v of vehicleObstacles){
-      const dx=cx-v.x,dz=cz-v.z;
-      const cos=Math.cos(-v.rot),sin=Math.sin(-v.rot);
-      const lx=dx*cos-dz*sin,lz=dx*sin+dz*cos;
-      if(Math.abs(lx)<v.hw*0.8 && Math.abs(lz)<v.hd*0.8) return true;
+    // 用网格只查附近掩体
+    const candidates=gridCollectCandidates(cx,cz,6);
+    for(const o of candidates){
+      if(o.type==='tree'||o.type==='rock'){
+        if(d2(cx,cz,o.x,o.z)<(o.r*0.7)*(o.r*0.7))return true;
+      }else if(o.type==='house'){
+        if(Math.abs(cx-o.x)<o.hw*0.85 && Math.abs(cz-o.z)<o.hd*0.85)return true;
+      }else if(o.type==='vehicle'){
+        const dx=cx-o.x,dz=cz-o.z;
+        const cos=Math.cos(-o.rot),sin=Math.sin(-o.rot);
+        const lx=dx*cos-dz*sin,lz=dx*sin+dz*cos;
+        if(Math.abs(lx)<o.hw*0.8 && Math.abs(lz)<o.hd*0.8)return true;
+      }
     }
   }
   return false;
@@ -497,49 +536,47 @@ function botShoot(b,t,now){
   // 命中率：技能 + 距离衰减 + 目标移动惩罚 + 掩体惩罚
   const moving=Math.hypot(t.vx||0,t.vz||0)>3|| (t.isPlayer&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD']));
   let p=b.skill*clamp(1.15-d/W.range,.1,1)*(moving?.62:1)*(t.isPlayer?.85:1);
-  // 掩体检测：如果目标和bot之间有掩体，降低命中率
-  if(lineObstacleBlocked(b.x,b.z,tx,tz)){
-    p*=0.3; // 掩体后命中率大幅降低
-  }
-  const hit=Math.random()<p;
   const from=new THREE.Vector3(b.x,1.4,b.z);
+  // 掩体检测只调用一次，命中/未命中共用结果
+  const blocked=lineObstacleBlocked(b.x,b.z,tx,tz);
+  if(blocked)p*=0.3; // 掩体后命中率大幅降低
+  const hit=Math.random()<p;
   let to;
-  if(hit){
-    // 再次检查掩体：如果子弹路径被掩体阻挡，则不命中
-    if(lineObstacleBlocked(b.x,b.z,tx,tz)){
-      // 子弹被掩体挡住，显示击中掩体效果
-      const hitPoint=findObstacleHitPoint(b.x,b.z,tx,tz);
-      to=hitPoint;
-      addTracer(from,to,0xffe082); // 黄色曳光表示击中掩体
-    }else{
-      damage(t,W.dmg,b);
-      to=new THREE.Vector3(tx,1.2,tz);
-    }
+  if(hit&&!blocked){
+    damage(t,W.dmg,b);
+    to=new THREE.Vector3(tx,1.2,tz);
+  }else if(hit&&blocked){
+    // 子弹被掩体挡住，显示击中掩体效果
+    const hitPoint=findObstacleHitPoint(b.x,b.z,tx,tz);
+    to=hitPoint;
+    addTracer(from,to,0xffe082); // 黄色曳光表示击中掩体
   }else{
     to=new THREE.Vector3(tx+rand(-3,3),rand(.5,2.2),tz+rand(-3,3));
   }
   addTracer(from,to,0xff5252);
 }
 
-// 找到子弹击中掩体的位置
+// 找到子弹击中掩体的位置（用网格加速，且只检测前200单位）
 function findObstacleHitPoint(x1,z1,x2,z2){
   const dx=x2-x1,dz=z2-z1;
   const dist=Math.sqrt(dx*dx+dz*dz);
-  const steps=Math.ceil(dist/3); // 每3单位采样
+  const maxCheckDist=200;
+  const steps=Math.min(Math.ceil(maxCheckDist/3),Math.ceil(dist/3));
   for(let i=1;i<=steps;i++){
     const t=i/steps;
     const cx=x1+dx*t,cz=z1+dz*t;
-    for(const o of obstacles){
-      if(Math.sqrt(d2(cx,cz,o.x,o.z))<o.r*0.7) return new THREE.Vector3(cx,1.2,cz);
-    }
-    for(const h of houseObstacles){
-      if(Math.abs(cx-h.x)<h.hw*0.85 && Math.abs(cz-h.z)<h.hd*0.85) return new THREE.Vector3(cx,1.2,cz);
-    }
-    for(const v of vehicleObstacles){
-      const vdx=cx-v.x,vdz=cz-v.z;
-      const cos=Math.cos(-v.rot),sin=Math.sin(-v.rot);
-      const lx=vdx*cos-vdz*sin,lz=vdx*sin+vdz*cos;
-      if(Math.abs(lx)<v.hw*0.8 && Math.abs(lz)<v.hd*0.8) return new THREE.Vector3(cx,1.2,cz);
+    const candidates=gridCollectCandidates(cx,cz,5);
+    for(const o of candidates){
+      if(o.type==='tree'||o.type==='rock'){
+        if(d2(cx,cz,o.x,o.z)<(o.r*0.7)*(o.r*0.7))return new THREE.Vector3(cx,1.2,cz);
+      }else if(o.type==='house'){
+        if(Math.abs(cx-o.x)<o.hw*0.85 && Math.abs(cz-o.z)<o.hd*0.85)return new THREE.Vector3(cx,1.2,cz);
+      }else if(o.type==='vehicle'){
+        const vdx=cx-o.x,vdz=cz-o.z;
+        const cos=Math.cos(-o.rot),sin=Math.sin(-o.rot);
+        const lx=vdx*cos-vdz*sin,lz=vdx*sin+vdz*cos;
+        if(Math.abs(lx)<o.hw*0.8 && Math.abs(lz)<o.hd*0.8)return new THREE.Vector3(cx,1.2,cz);
+      }
     }
   }
   return new THREE.Vector3(x2,1.2,z2);
