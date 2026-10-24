@@ -1,6 +1,6 @@
 # 孤岛吃鸡 3D — 第一人称大逃杀
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Three.js](https://img.shields.io/badge/Three.js-r0.160-blue)](https://threejs.org/)
 
 > 100 人空降孤岛，第一人称视角，活到最后吃鸡！
