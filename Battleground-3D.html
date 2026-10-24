@@ -226,7 +226,7 @@ let gameOn=false,zonePhase=0,zoneTimer=0,msgT=0,lastT=0,aliveCount=BOTN+1;
 const zone={x:0,z:0,r:MAP*0.72,tx:0,tz:0,tr:MAP*0.72,shrinking:false,sx:0,sz:0,sr:0};
 
 const player={
-  pos:new THREE.Vector3(0,1.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,
+  pos:new THREE.Vector3(0,2.0,0),vel:new THREE.Vector3(),yaw:0,pitch:0,
   hp:100,alive:true,weapon:"pistol",ammo:WEAPONS.pistol.mag,reloadT:0,fireT:0,kills:0,speed:9,
   isPlayer:true,x:0,z:0, // x/z 镜像供 AI 使用
   // 跳跃物理
@@ -240,23 +240,24 @@ const player={
 };
 
 // ---------------- 人机 ----------------
-const bodyG=new THREE.BoxGeometry(1.1,1.3,.6),headG=new THREE.BoxGeometry(.55,.55,.55),gunG=new THREE.BoxGeometry(.15,.15,1.4);
-const hpBarG=new THREE.PlaneGeometry(1.4,.16);
+// 放大模型：从约2单位高改为3单位高，更容易看见
+const bodyG=new THREE.BoxGeometry(1.4,1.6,.8),headG=new THREE.BoxGeometry(.7,.7,.7),gunG=new THREE.BoxGeometry(.2,.2,1.6);
+const hpBarG=new THREE.PlaneGeometry(1.8,.2);
 function makeBot(x,z){
   const g=new THREE.Group();
-  const body=new THREE.Mesh(bodyG,new THREE.MeshLambertMaterial({color:0xc62828}));body.position.y=.95;
-  const head=new THREE.Mesh(headG,new THREE.MeshLambertMaterial({color:0xd7a37a}));head.position.y=1.85;
-  const gun=new THREE.Mesh(gunG,new THREE.MeshLambertMaterial({color:0x222222}));gun.position.set(.5,1.3,-.6);
+  const body=new THREE.Mesh(bodyG,new THREE.MeshLambertMaterial({color:0xc62828}));body.position.y=1.2;
+  const head=new THREE.Mesh(headG,new THREE.MeshLambertMaterial({color:0xd7a37a}));head.position.y=2.4;
+  const gun=new THREE.Mesh(gunG,new THREE.MeshLambertMaterial({color:0x222222}));gun.position.set(.6,1.6,-.8);
   const hpBg=new THREE.Mesh(hpBarG,new THREE.MeshBasicMaterial({color:0x111111}));
   const hpFg=new THREE.Mesh(hpBarG,new THREE.MeshBasicMaterial({color:0x7cfc00}));
-  hpBg.position.y=2.35;hpFg.position.y=2.36;
+  hpBg.position.y=3.0;hpFg.position.y=3.02;
   g.add(body,head,gun,hpBg,hpFg);
   g.position.set(x,0,z);scene.add(g);
   const w=Math.random()<.4?"pistol":LOOT[(Math.random()*LOOT.length)|0];
   return {x,z,yaw:rand(0,6.28),hp:100,alive:true,weapon:w,ammo:WEAPONS[w].mag,reloadT:0,fireT:0,
     speed:rand(6.5,8.5),kills:0,isPlayer:false,mesh:g,hpFg,hpBg,
     state:"roam",target:null,wx:x,wz:z,thinkT:rand(0,300),strafe:Math.random()<.5?1:-1,
-    skill:rand(.5,.92),fleeHp:rand(20,38),burstT:0,lastAttacker:null,vx:0,vz:0};
+    skill:rand(.35,.65),fleeHp:rand(25,45),burstT:0,lastAttacker:null,vx:0,vz:0};
 }
 
 function reset(){
@@ -521,8 +522,10 @@ function playerShoot(now){
       end=hits[0].point;
       if(b){damage(b,W.dmg,player);hitmarker();}
     }
-    // 子弹被掩体阻挡时停止
-    addTracer(camera.position.clone().add(dir.clone().multiplyScalar(2)).add(new THREE.Vector3(0,-.15,0)),end,0xffe082);
+    // 弹道曳光：从枪口附近到命中点，红色表示玩家子弹
+    const gunOffset=new THREE.Vector3(.3,.15,-.5).applyQuaternion(camera.quaternion);
+    const gunPos=camera.position.clone().add(gunOffset);
+    addTracer(gunPos,end,0xffe082);
   }
   updateHUD();
 }
@@ -533,25 +536,30 @@ function botShoot(b,t,now){
   b.fireT=now+W.rof;b.ammo--;
   const tx=t.x??t.pos.x,tz=t.z??t.pos.z;
   const d=Math.sqrt(d2(b.x,b.z,tx,tz));
-  // 命中率：技能 + 距离衰减 + 目标移动惩罚 + 掩体惩罚
+  // 命中率：大幅降低基础命中率
+  // 技能范围0.35-0.65（之前0.5-0.92），距离衰减更严厉，移动惩罚加大
   const moving=Math.hypot(t.vx||0,t.vz||0)>3|| (t.isPlayer&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD']));
-  let p=b.skill*clamp(1.15-d/W.range,.1,1)*(moving?.62:1)*(t.isPlayer?.85:1);
-  const from=new THREE.Vector3(b.x,1.4,b.z);
-  // 掩体检测只调用一次，命中/未命中共用结果
+  let p=b.skill*clamp(.85-d/W.range,.05,.6)*(moving?.5:1)*(t.isPlayer?.8:1);
+  // 近距离也保证不会太准
+  if(d<W.range*.3)p*=.7;
+  const from=new THREE.Vector3(b.x,1.6,b.z); // 枪口高度匹配放大后的bot
+  // 掩体检测只调用一次
   const blocked=lineObstacleBlocked(b.x,b.z,tx,tz);
-  if(blocked)p*=0.3; // 掩体后命中率大幅降低
+  if(blocked)p*=0.2;
+  // 最大命中率限制60%
+  p=Math.min(p,.6);
   const hit=Math.random()<p;
   let to;
   if(hit&&!blocked){
     damage(t,W.dmg,b);
-    to=new THREE.Vector3(tx,1.2,tz);
+    to=new THREE.Vector3(tx,1.5,tz); // 命中点匹配放大后bot的高度
   }else if(hit&&blocked){
-    // 子弹被掩体挡住，显示击中掩体效果
     const hitPoint=findObstacleHitPoint(b.x,b.z,tx,tz);
     to=hitPoint;
-    addTracer(from,to,0xffe082); // 黄色曳光表示击中掩体
+    addTracer(from,to,0xffe082);
   }else{
-    to=new THREE.Vector3(tx+rand(-3,3),rand(.5,2.2),tz+rand(-3,3));
+    // 未命中时偏移加大，弹道明显偏离
+    to=new THREE.Vector3(tx+rand(-5,5),rand(.5,3.5),tz+rand(-5,5));
   }
   addTracer(from,to,0xff5252);
 }
