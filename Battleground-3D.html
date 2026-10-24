@@ -77,11 +77,11 @@ scene.fog=new THREE.Fog(0x87b5e0,200,1600);
 const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,2500);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
-// 玩家武器模型（第一人称视角可见）
-const playerGunG=new THREE.BoxGeometry(.2,.2,1.2);
+// 玩家武器模型（第一人称视角可见）— 缩小版
+const playerGunG=new THREE.BoxGeometry(.1,.12,.6);
 const playerGunM=new THREE.MeshLambertMaterial({color:0x222222});
 const playerGun=new THREE.Mesh(playerGunG,playerGunM);
-playerGun.position.set(.3,-.25,-.6);
+playerGun.position.set(.25,-.2,-.4);
 camera.add(playerGun);
 scene.add(camera); // camera作为根节点加入场景，让gun可见
 
@@ -131,41 +131,47 @@ const houseObstacles=[];
 {
   const wallMat=new THREE.MeshLambertMaterial({color:0x8a7a6a});
   const roofMat=new THREE.MeshLambertMaterial({color:0x5a3a2a});
-  // 在地图四角和中心区域放置房屋
-  const housePositions=[
-    {x:-800,z:-800},{x:800,z:-800},{x:-800,z:800},{x:800,z:800},
-    {x:0,z:0},{x:-600,z:0},{x:600,z:0},{x:0,z:-600},{x:0,z:600},
-    {x:-1400,z:0},{x:1400,z:0},{x:0,z:-1400},{x:0,z:1400},
-    {x:-1000,z:-1400},{x:1000,z:1400},{x:-1400,z:1000},{x:1400,z:-1000},
-    {x:-500,z:1200},{x:500,z:-1200},{x:1200,z:500},{x:-1200,z:-500},
-    {x:1500,z:0},{x:-1500,z:0},{x:0,z:1500},{x:0,z:-1500},
-  ];
-  for(const hp of housePositions){
-    const w=rand(12,20),d=rand(12,20),h=rand(6,10);
+  // 地图中央小村庄：3x3网格，间距120，覆盖-180到180
+  const villageHouses=[];
+  for(let ix=-1;ix<=1;ix++)for(let iz=-1;iz<=1;iz++){
+    villageHouses.push({x:ix*120,z:iz*120});
+    // 每栋房子旁边再随机加1-2栋附属小屋
+    if(Math.random()<.6)villageHouses.push({x:ix*120+rand(-50,50),z:iz*120+rand(-50,50)});
+    if(Math.random()<.4)villageHouses.push({x:ix*120+rand(-50,50),z:iz*120+rand(-50,50)});
+  }
+  // 地图中距离区域：半径400-700的环形带
+  const midRingHouses=[];
+  for(let i=0;i<18;i++){
+    const angle=rand(0,Math.PI*2);
+    const dist=rand(400,700);
+    midRingHouses.push({x:Math.cos(angle)*dist,z:Math.sin(angle)*dist});
+  }
+  // 地图边缘：半径800-1100
+  const edgeHouses=[];
+  for(let i=0;i<10;i++){
+    const angle=rand(0,Math.PI*2);
+    const dist=rand(800,1100);
+    edgeHouses.push({x:Math.cos(angle)*dist,z:Math.sin(angle)*dist});
+  }
+  const allHouses=[...villageHouses,...midRingHouses,...edgeHouses];
+  for(const hp of allHouses){
+    const w=rand(8,16),d=rand(8,16),h=rand(5,9);
     const g=new THREE.Group();
-    // 四面墙（中间空心）
     const wallThick=0.8;
-    // 前墙
     const fw=new THREE.Mesh(new THREE.BoxGeometry(w,h,wallThick),wallMat);
     fw.position.set(0,h/2,-d/2);g.add(fw);
-    // 后墙
     const bw=new THREE.Mesh(new THREE.BoxGeometry(w,h,wallThick),wallMat);
     bw.position.set(0,h/2,d/2);g.add(bw);
-    // 左墙
     const lw=new THREE.Mesh(new THREE.BoxGeometry(wallThick,h,d),wallMat);
     lw.position.set(-w/2,h/2,0);g.add(lw);
-    // 右墙
     const rw=new THREE.Mesh(new THREE.BoxGeometry(wallThick,h,d),wallMat);
     rw.position.set(w/2,h/2,0);g.add(rw);
-    // 屋顶
     const roof=new THREE.Mesh(new THREE.BoxGeometry(w+2,0.5,d+2),roofMat);
     roof.position.y=h;g.add(roof);
-    // 地板
     const floor=new THREE.Mesh(new THREE.BoxGeometry(w-1,0.3,d-1),
       new THREE.MeshLambertMaterial({color:0x6a5a4a}));
     floor.position.y=0.15;g.add(floor);
     g.position.set(hp.x,0,hp.z);scene.add(g);
-    // 房屋作为碰撞体（矩形碰撞）
     houseObstacles.push({x:hp.x,z:hp.z,hw:w/2+1,hd:d/2+1,h:h,type:'house'});
   }
 }
@@ -248,17 +254,17 @@ const player={
 };
 
 // ---------------- 人机 ----------------
-// 大幅放大：身体约3x宽x3.5x高x1.5x厚，总高约6单位，非常显眼
-const bodyG=new THREE.BoxGeometry(2.4,2.8,1.2),headG=new THREE.BoxGeometry(1.1,1.1,1.1),gunG=new THREE.BoxGeometry(.25,.25,2.2);
-const hpBarG=new THREE.PlaneGeometry(2.8,.3);
+// 巨无霸：身体4x宽x5x高x2x厚，总高约8单位，远处也清晰可见
+const bodyG=new THREE.BoxGeometry(3.5,4.5,1.8),headG=new THREE.BoxGeometry(1.5,1.5,1.5),gunG=new THREE.BoxGeometry(.25,.25,2.5);
+const hpBarG=new THREE.PlaneGeometry(3.5,.4);
 function makeBot(x,z){
   const g=new THREE.Group();
-  const body=new THREE.Mesh(bodyG,new THREE.MeshLambertMaterial({color:0xe53935,emissive:0x550000,emissiveIntensity:.3}));body.position.y=2.0;
-  const head=new THREE.Mesh(headG,new THREE.MeshLambertMaterial({color:0xd7a37a}));head.position.y=4.2;
-  const gun=new THREE.Mesh(gunG,new THREE.MeshLambertMaterial({color:0x111111}));gun.position.set(.8,2.4,-1.2);
+  const body=new THREE.Mesh(bodyG,new THREE.MeshLambertMaterial({color:0xe53935,emissive:0x660000,emissiveIntensity:.35}));body.position.y=3.0;
+  const head=new THREE.Mesh(headG,new THREE.MeshLambertMaterial({color:0xd7a37a}));head.position.y=6.2;
+  const gun=new THREE.Mesh(gunG,new THREE.MeshLambertMaterial({color:0x111111}));gun.position.set(1.0,3.2,-1.5);
   const hpBg=new THREE.Mesh(hpBarG,new THREE.MeshBasicMaterial({color:0x111111}));
   const hpFg=new THREE.Mesh(hpBarG,new THREE.MeshBasicMaterial({color:0x7cfc00}));
-  hpBg.position.y=5.3;hpFg.position.y=5.35;
+  hpBg.position.y=7.8;hpFg.position.y=7.85;
   g.add(body,head,gun,hpBg,hpFg);
   g.position.set(x,0,z);scene.add(g);
   const w=Math.random()<.4?"pistol":LOOT[(Math.random()*LOOT.length)|0];
@@ -545,29 +551,24 @@ function botShoot(b,t,now){
   const tx=t.x??t.pos.x,tz=t.z??t.pos.z;
   const d=Math.sqrt(d2(b.x,b.z,tx,tz));
   // 命中率：非常低
-  // 技能范围0.25-0.45（很菜），距离衰减严厉
   const moving=Math.hypot(t.vx||0,t.vz||0)>3|| (t.isPlayer&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD']));
   let p=b.skill*clamp(.6-d/W.range,.02,.4)*(moving?.45:1)*(t.isPlayer?.75:1);
-  // 近距离也保证不准
   if(d<W.range*.3)p*=.6;
-  // 枪口位置（放大后的bot）
-  const from=new THREE.Vector3(b.x,2.4,b.z);
-  // 掩体检测
+  // 枪口位置（巨无霸bot）
+  const from=new THREE.Vector3(b.x,3.2,b.z);
   const blocked=lineObstacleBlocked(b.x,b.z,tx,tz);
   if(blocked)p*=0.15;
-  // 最大命中率35%
   p=Math.min(p,.35);
   const hit=Math.random()<p;
   let to;
   if(hit&&!blocked){
     damage(t,W.dmg,b);
-    to=new THREE.Vector3(tx,2.0,tz);
+    to=new THREE.Vector3(tx,3.0,tz);
   }else if(hit&&blocked){
     const hitPoint=findObstacleHitPoint(b.x,b.z,tx,tz);
     to=hitPoint;
     addTracer(from,to,0xffe082);
   }else{
-    // 未命中偏移更大，弹道明显打飞
     to=new THREE.Vector3(tx+rand(-8,8),rand(0,5),tz+rand(-8,8));
   }
   addTracer(from,to,0xff5252);
@@ -599,14 +600,14 @@ function findObstacleHitPoint(x1,z1,x2,z2){
   return new THREE.Vector3(x2,1.2,z2);
 }
 
-// 曳光弹对象池 — 复用 geometry/material，减少 GC 压力
-// 弹道要明显：持续150ms（原70ms），高亮颜色，粗线
+// 曳光弹对象池 — 弹道红色轨迹：从起点到终点画一条红色长线（尾巴），在命中点画一个亮色点（弹头）
+// 用两个Line对象：红色长尾 + 亮色弹头
 const tracerPool=[];
 const TRACER_POOL_SIZE=512;
 (function initTracerPool(){
   for(let i=0;i<TRACER_POOL_SIZE;i++){
     const g=new THREE.BufferGeometry();
-    const m=new THREE.LineBasicMaterial({transparent:true,opacity:1.0,linewidth:1});
+    const m=new THREE.LineBasicMaterial({transparent:true,opacity:1.0});
     const l=new THREE.Line(g,m);
     l.visible=false;
     scene.add(l);
@@ -615,8 +616,8 @@ const TRACER_POOL_SIZE=512;
 })();
 let tracerPoolIdx=0;
 
-function addTracer(a,b,color){
-  // 优先从池中取，池空则新建
+// 红色弹道尾巴（长线）
+function addTrail(a,b,color){
   let slot;
   if(tracerPoolIdx<tracerPool.length){
     slot=tracerPool[tracerPoolIdx++];
@@ -627,11 +628,56 @@ function addTracer(a,b,color){
     scene.add(l);
     slot={line:l,geo:g,mat:m};
   }
-  slot.geo.setFromPoints([a,b]);
-  slot.mat.color.setHex(color);
+  // 红色尾巴：从起点向后延伸一段距离，到命中点
+  const dx=b.x-a.x,dz=b.z-a.z;
+  const dist=Math.sqrt(dx*dx+dz*dz);
+  const extend=Math.min(dist*.3,80); // 尾巴长度：30%弹道或最多80单位
+  const tailEnd=new THREE.Vector3(
+    b.x-dx/dist*extend,
+    b.y-(b.y-a.y)/dist*extend,
+    b.z-dz/dist*extend
+  );
+  slot.geo.setFromPoints([a,tailEnd]);
+  slot.mat.color.setHex(color||0xff2200); // 红色
   slot.mat.opacity=1.0;
   slot.line.visible=true;
-  tracers.push({line:slot.line,t:performance.now()+150,slot});
+  tracers.push({line:slot.line,t:performance.now()+200,slot});
+}
+
+// 弹头亮点（短线，亮色）
+function addHead(a,b,color){
+  let slot;
+  if(tracerPoolIdx<tracerPool.length){
+    slot=tracerPool[tracerPoolIdx++];
+  }else{
+    const g=new THREE.BufferGeometry();
+    const m=new THREE.LineBasicMaterial({color,transparent:true,opacity:1.0});
+    const l=new THREE.Line(g,m);
+    scene.add(l);
+    slot={line:l,geo:g,mat:m};
+  }
+  // 弹头：命中点附近的一小段
+  const dx=b.x-a.x,dz=b.z-a.z;
+  const dist=Math.sqrt(dx*dx+dz*dz)||1;
+  const headLen=Math.min(dist*.08,5);
+  const headStart=new THREE.Vector3(
+    b.x-dx/dist*headLen,
+    b.y-(b.y-a.y)/dist*headLen,
+    b.z-dz/dist*headLen
+  );
+  slot.geo.setFromPoints([headStart,b]);
+  slot.mat.color.setHex(color||0xffe082);
+  slot.mat.opacity=1.0;
+  slot.line.visible=true;
+  tracers.push({line:slot.line,t:performance.now()+200,slot});
+}
+
+// 统一接口：红色弹道轨迹
+function addTracer(a,b,color){
+  // 红色尾巴
+  addTrail(a,b,color);
+  // 亮色弹头
+  addHead(a,b,color);
 }
 
 function damage(e,d,src){
